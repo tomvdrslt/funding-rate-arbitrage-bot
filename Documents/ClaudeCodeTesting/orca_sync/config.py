@@ -1,6 +1,17 @@
 import os
 import platform
 
+# OrcaSlicer process names per platform
+_SYSTEM = platform.system()
+ORCA_PROCESS_NAMES: list[str] = {
+    "Windows": ["orca-slicer.exe", "OrcaSlicer.exe"],
+    "Darwin":  ["OrcaSlicer"],
+    "Linux":   ["orca-slicer", "OrcaSlicer"],
+}.get(_SYSTEM, ["orca-slicer", "OrcaSlicer"])
+
+# How often to check whether OrcaSlicer is running (seconds)
+PROCESS_POLL_INTERVAL = 3
+
 
 def _orca_base() -> str:
     system = platform.system()

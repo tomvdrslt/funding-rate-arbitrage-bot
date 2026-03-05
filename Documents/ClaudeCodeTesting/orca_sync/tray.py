@@ -16,9 +16,10 @@ from config import LOG_FILE
 logger = logging.getLogger(__name__)
 
 _STATUS_COLORS = {
-    "synced": (34, 197, 94),   # green
-    "syncing": (234, 179, 8),  # yellow
-    "error": (239, 68, 68),    # red
+    "waiting": (156, 163, 175),  # gray  — OrcaSlicer not running
+    "synced":  (34, 197, 94),    # green
+    "syncing": (234, 179, 8),    # yellow
+    "error":   (239, 68, 68),    # red
 }
 
 

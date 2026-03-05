@@ -180,6 +180,35 @@ class DriveClient:
 
         return changed, new_token
 
+    def list_all_files(self) -> list[tuple[str, str, str]]:
+        """Return [(file_id, rel_path, modifiedTime)] for all files under OrcaSlicerSync."""
+        results: list[tuple[str, str, str]] = []
+        self._walk_folder(self.get_root_folder_id(), "", results)
+        return results
+
+    def _walk_folder(self, folder_id: str, rel_prefix: str, results: list) -> None:
+        page_token = None
+        while True:
+            resp = (
+                self._service.files()
+                .list(
+                    q=f"'{folder_id}' in parents and trashed=false",
+                    fields="nextPageToken,files(id,name,mimeType,modifiedTime)",
+                    pageToken=page_token,
+                    spaces="drive",
+                )
+                .execute()
+            )
+            for f in resp.get("files", []):
+                rel_path = f["name"] if not rel_prefix else f"{rel_prefix}/{f['name']}"
+                if f["mimeType"] == "application/vnd.google-apps.folder":
+                    self._walk_folder(f["id"], rel_path, results)
+                else:
+                    results.append((f["id"], rel_path, f.get("modifiedTime", "")))
+            page_token = resp.get("nextPageToken")
+            if not page_token:
+                break
+
     def get_file_metadata(self, file_id: str) -> dict:
         return (
             self._service.files()

@@ -4,6 +4,7 @@ import sys
 import threading
 
 from config import LOG_FILE
+from process_monitor import ProcessMonitor
 from sync_engine import SyncEngine
 from tray import TrayApp
 
@@ -26,19 +27,28 @@ def main():
     logger.info("OrcaSlicer Profile Sync starting...")
 
     engine = SyncEngine()
+
+    def on_orca_open():
+        tray.set_status("syncing")
+        threading.Thread(target=engine.start, name="SyncEngine", daemon=True).start()
+
+    def on_orca_close():
+        engine.stop()
+        tray.set_status("waiting")
+
+    monitor = ProcessMonitor(on_open=on_orca_open, on_close=on_orca_close)
+
     tray = TrayApp(
-        on_sync_now=engine.sync_now,
-        on_quit=_make_quit_handler(engine),
+        on_sync_now=lambda: engine.sync_now() if engine.is_running() else None,
+        on_quit=_make_quit_handler(engine, monitor),
     )
 
     # Wire tray status updates from the engine
     engine._on_status = tray.set_status  # type: ignore[attr-defined]
 
-    # Start the sync engine in a background thread
-    sync_thread = threading.Thread(target=engine.start, name="SyncEngine", daemon=True)
-    sync_thread.start()
+    monitor.start()
+    tray.set_status("waiting")
 
-    # Run tray on the main thread (required by pystray on Windows)
     try:
         tray.run()
         if not tray._icon:          # pystray unavailable — keep alive
@@ -47,13 +57,15 @@ def main():
     except KeyboardInterrupt:
         logger.info("KeyboardInterrupt received.")
     finally:
+        monitor.stop()
         engine.stop()
         logger.info("OrcaSlicer Profile Sync stopped.")
 
 
-def _make_quit_handler(engine: SyncEngine):
+def _make_quit_handler(engine: SyncEngine, monitor: ProcessMonitor):
     def _quit():
         logger.info("Quit requested from tray.")
+        monitor.stop()
         engine.stop()
         os._exit(0)
     return _quit
