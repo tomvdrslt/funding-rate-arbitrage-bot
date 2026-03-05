@@ -1,0 +1,19 @@
+# Credentials and tokens — never commit these
+orca_sync/credentials.json
+orca_sync/token.json
+
+# Generated portable script — contains embedded credentials
+orca_sync_portable.py
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/

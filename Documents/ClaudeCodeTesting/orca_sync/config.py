@@ -1,14 +1,26 @@
 import os
+import platform
 
-APPDATA = os.environ.get("APPDATA", os.path.expanduser("~"))
+
+def _orca_base() -> str:
+    system = platform.system()
+    if system == "Windows":
+        return os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "OrcaSlicer")
+    elif system == "Darwin":
+        return os.path.join(os.path.expanduser("~"), "Library", "Application Support", "OrcaSlicer")
+    else:  # Linux and others
+        return os.path.join(os.path.expanduser("~"), ".config", "OrcaSlicer")
+
+
+_BASE = _orca_base()
 
 PROFILE_DIRS = [
-    os.path.join(APPDATA, "OrcaSlicer", "system", "Custom", "filament"),
-    os.path.join(APPDATA, "OrcaSlicer", "system", "Custom", "machine"),
-    os.path.join(APPDATA, "OrcaSlicer", "system", "Custom", "process"),
-    os.path.join(APPDATA, "OrcaSlicer", "user", "default", "filament"),
-    os.path.join(APPDATA, "OrcaSlicer", "user", "default", "machine"),
-    os.path.join(APPDATA, "OrcaSlicer", "user", "default", "process"),
+    os.path.join(_BASE, "system", "Custom", "filament"),
+    os.path.join(_BASE, "system", "Custom", "machine"),
+    os.path.join(_BASE, "system", "Custom", "process"),
+    os.path.join(_BASE, "user", "default", "filament"),
+    os.path.join(_BASE, "user", "default", "machine"),
+    os.path.join(_BASE, "user", "default", "process"),
 ]
 
 DRIVE_FOLDER_NAME = "OrcaSlicerSync"
