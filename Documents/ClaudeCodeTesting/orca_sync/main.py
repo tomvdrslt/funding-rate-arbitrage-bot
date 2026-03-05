@@ -41,6 +41,9 @@ def main():
     # Run tray on the main thread (required by pystray on Windows)
     try:
         tray.run()
+        if not tray._icon:          # pystray unavailable — keep alive
+            logger.info("No tray available; running headless. Press Ctrl+C to quit.")
+            threading.Event().wait()
     except KeyboardInterrupt:
         logger.info("KeyboardInterrupt received.")
     finally:

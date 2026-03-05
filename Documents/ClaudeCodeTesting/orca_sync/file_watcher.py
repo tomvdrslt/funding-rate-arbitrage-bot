@@ -69,5 +69,6 @@ class FileWatcher:
 
     def stop(self) -> None:
         self._observer.stop()
-        self._observer.join()
+        if self._observer.is_alive():
+            self._observer.join()
         logger.info("File watcher stopped.")
