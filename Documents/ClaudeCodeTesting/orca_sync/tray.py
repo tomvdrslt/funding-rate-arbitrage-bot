@@ -41,14 +41,22 @@ class TrayApp:
         self._on_quit = on_quit
         self._icon: Optional["pystray.Icon"] = None
         self._status = "synced"
+        self._icon_lock = threading.Lock()
 
     def set_status(self, status: str) -> None:
-        """Update tray icon color. status: 'synced' | 'syncing' | 'error'"""
+        """Update tray icon color. status: 'waiting' | 'synced' | 'syncing' | 'error'
+        Safe to call from any thread."""
         self._status = status
         if self._icon:
             color = _STATUS_COLORS.get(status, _STATUS_COLORS["error"])
-            self._icon.icon = _make_icon_image(color)
-            self._icon.title = f"OrcaSync — {status}"
+            with self._icon_lock:
+                try:
+                    self._icon.icon = _make_icon_image(color)
+                    self._icon.title = f"OrcaSync — {status}"
+                except OSError:
+                    # Win32 icon handle can be invalid when called from a
+                    # background thread — non-fatal, status is stored above
+                    pass
 
     def run(self) -> None:
         if pystray is None:
