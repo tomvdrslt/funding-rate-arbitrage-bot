@@ -23,15 +23,21 @@ def run_backtest(
     position_pct: float,
     min_entry_apr: float,
     min_exit_apr: float,
+    exchange: str = "binance",
 ) -> None:
-    csv_path = f"data/{asset}_funding_history.csv"
+    csv_path = f"data/{asset}_{exchange}_funding_history.csv"
+    legacy_path = f"data/{asset}_funding_history.csv"
+
+    # Fall back to legacy path if exchange-specific file doesn't exist
+    if not os.path.exists(csv_path) and os.path.exists(legacy_path):
+        csv_path = legacy_path
 
     if os.path.exists(csv_path):
         print(f"Loading cached history from {csv_path}")
         df = pd.read_csv(csv_path, parse_dates=["timestamp"])
     else:
-        print(f"Fetching history for {asset}...")
-        df = fetch_funding_history(asset, days=days, save_csv=True)
+        print(f"Fetching history for {asset} from {exchange}...")
+        df = fetch_funding_history(asset, days=days, save_csv=True, exchange=exchange)
 
     if df.empty:
         print("No data available.")

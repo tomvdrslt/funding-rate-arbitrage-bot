@@ -11,7 +11,7 @@ from typing import Dict
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.settings import load_config
-from src.data.feed import MarketFeed, build_exchange
+from src.data.feed import MarketFeed, build_exchange, build_spot_exchange
 from src.strategy.funding_arb import FundingArbStrategy, Signal
 from src.strategy.sizing import calculate_position_size
 from src.risk.manager import RiskManager, BotStatus
@@ -62,15 +62,21 @@ def main() -> None:
 
     # 3. Build exchange
     exchange = build_exchange(config)
+    spot_exchange = build_spot_exchange(config)
 
     # 4. Get starting equity
     if paper_mode:
         starting_equity = 10000.0
         log.info("Paper mode: using mock equity of $10,000")
     else:
-        balance = exchange.fetch_balance()
-        starting_equity = float(balance['USDT']['free'])
-        log.info(f"Starting equity: ${starting_equity:.2f}")
+        # For split exchanges (Kraken), fetch spot balance from spot_exchange
+        # and futures margin from futures exchange, then sum them
+        spot_balance = spot_exchange.fetch_balance()
+        spot_usdt = float(spot_balance.get('USDT', {}).get('free', 0))
+        futures_balance = exchange.fetch_balance()
+        futures_usdt = float(futures_balance.get('USDT', {}).get('free', 0))
+        starting_equity = spot_usdt + futures_usdt
+        log.info(f"Starting equity: ${starting_equity:.2f} (spot=${spot_usdt:.2f} + futures=${futures_usdt:.2f})")
 
     # 5. Initialize risk manager
     risk = RiskManager(
@@ -84,12 +90,12 @@ def main() -> None:
     # 6. Log start event
     log_event("STARTED", f"Bot started in {'PAPER' if paper_mode else 'LIVE'} mode. Equity: {starting_equity:.2f}")
 
-    feed = MarketFeed(exchange)
+    feed = MarketFeed(exchange, spot_exchange=spot_exchange)
     strategy = FundingArbStrategy(
         min_entry_apr=config.risk.min_funding_entry_apr,
         min_exit_apr=config.risk.min_funding_exit_apr,
     )
-    executor = OrderExecutor(exchange, paper_mode=paper_mode)
+    executor = OrderExecutor(exchange, paper_mode=paper_mode, spot_exchange=spot_exchange)
     rebalancer = Rebalancer(executor, threshold_pct=config.risk.delta_rebalance_threshold)
 
     open_positions: Dict[str, dict] = {}
