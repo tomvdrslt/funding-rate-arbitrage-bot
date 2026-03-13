@@ -48,7 +48,7 @@ def build_exchange(config) -> ccxt.Exchange:
         },
     })
     if config.exchange.testnet:
-        exchange.set_sandbox_mode(True)
+        _try_sandbox(exchange)
     return exchange
 
 
@@ -67,8 +67,16 @@ def build_spot_exchange(config) -> ccxt.Exchange:
         },
     })
     if config.exchange.testnet:
-        exchange.set_sandbox_mode(True)
+        _try_sandbox(exchange)
     return exchange
+
+
+def _try_sandbox(exchange: ccxt.Exchange) -> None:
+    """Enable sandbox mode if the exchange supports it, otherwise skip silently."""
+    try:
+        exchange.set_sandbox_mode(True)
+    except ccxt.NotSupported:
+        pass
 
 
 class MarketFeed:
