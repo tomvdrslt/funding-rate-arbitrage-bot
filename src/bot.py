@@ -90,7 +90,8 @@ def main() -> None:
     # 6. Log start event
     log_event("STARTED", f"Bot started in {'PAPER' if paper_mode else 'LIVE'} mode. Equity: {starting_equity:.2f}")
 
-    feed = MarketFeed(exchange, spot_exchange=spot_exchange)
+    quote = config.exchange.quote_currency
+    feed = MarketFeed(exchange, spot_exchange=spot_exchange, quote_currency=quote)
     strategy = FundingArbStrategy(
         min_entry_apr=config.risk.min_funding_entry_apr,
         min_exit_apr=config.risk.min_funding_exit_apr,
@@ -108,8 +109,8 @@ def main() -> None:
             qty = pos["qty"]
             snap = funding_snapshots.get(asset)
             price = snap.spot_price if snap else pos.get("entry_spot", 0)
-            spot_res = executor.sell_spot(f"{asset}/USDT", qty, price)
-            perp_res = executor.close_perp_short(f"{asset}/USDT:USDT", qty, price)
+            spot_res = executor.sell_spot(f"{asset}/{quote}", qty, price)
+            perp_res = executor.close_perp_short(f"{asset}/{quote}:{quote}", qty, price)
             if spot_res.success and perp_res.success:
                 log.info(f"Closed {asset} position")
                 log_trade(
@@ -157,6 +158,7 @@ def main() -> None:
                             portfolio_usdt=current_equity,
                             spot_price=snapshot.spot_price,
                             max_position_pct=config.risk.max_position_pct,
+                            quote_currency=quote,
                         )
                         if size is None:
                             log.warning(f"{asset}: Position size below minimum, skipping")
@@ -208,8 +210,8 @@ def main() -> None:
                         perp_res = None
 
                         for attempt in range(3):
-                            spot_res = executor.sell_spot(f"{asset}/USDT", qty, snapshot.spot_price)
-                            perp_res = executor.close_perp_short(f"{asset}/USDT:USDT", qty, snapshot.perp_price)
+                            spot_res = executor.sell_spot(f"{asset}/{quote}", qty, snapshot.spot_price)
+                            perp_res = executor.close_perp_short(f"{asset}/{quote}:{quote}", qty, snapshot.perp_price)
                             if spot_res.success and perp_res.success:
                                 break
                             log.warning(f"{asset}: Exit attempt {attempt+1} failed, retrying...")

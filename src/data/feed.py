@@ -79,16 +79,21 @@ def _try_sandbox(exchange: ccxt.Exchange) -> None:
         pass
 
 
+def get_symbols(asset: str, quote: str) -> tuple:
+    """Return (spot_symbol, perp_symbol) for the given asset and quote currency."""
+    return f"{asset}/{quote}", f"{asset}/{quote}:{quote}"
+
+
 class MarketFeed:
-    def __init__(self, exchange: ccxt.Exchange, spot_exchange: ccxt.Exchange = None):
+    def __init__(self, exchange: ccxt.Exchange, spot_exchange: ccxt.Exchange = None,
+                 quote_currency: str = "USDT"):
         self.exchange = exchange
-        # Some exchanges serve spot + futures from the same instance
         self.spot_exchange = spot_exchange or exchange
+        self.quote_currency = quote_currency
 
     def get_funding_snapshot(self, asset: str) -> FundingSnapshot:
         """Fetch current funding rate and prices for an asset."""
-        spot_symbol = f"{asset}/USDT"
-        perp_symbol = f"{asset}/USDT:USDT"
+        spot_symbol, perp_symbol = get_symbols(asset, self.quote_currency)
 
         # Fetch funding rate
         funding_info = self.exchange.fetch_funding_rate(perp_symbol)

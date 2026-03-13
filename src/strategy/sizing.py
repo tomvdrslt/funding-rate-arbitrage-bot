@@ -26,6 +26,7 @@ def calculate_position_size(
     spot_price: float,
     max_position_pct: float,
     min_order_size: float = 10.0,
+    quote_currency: str = "USDT",
 ) -> Optional[PositionSize]:
     """
     Calculate position size for a delta-neutral entry.
@@ -46,6 +47,6 @@ def calculate_position_size(
         spot_qty=qty,
         perp_qty=qty,
         notional_usdt=actual_notional,
-        spot_symbol=f"{asset}/USDT",
-        perp_symbol=f"{asset}/USDT:USDT",
+        spot_symbol=f"{asset}/{quote_currency}",
+        perp_symbol=f"{asset}/{quote_currency}:{quote_currency}",
     )

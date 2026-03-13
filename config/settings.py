@@ -8,6 +8,9 @@ SPLIT_EXCHANGES = {
     'kraken': 'krakenfutures',
 }
 
+# Exchanges that quote in USD instead of USDT
+USD_EXCHANGES = {'kraken', 'krakenfutures'}
+
 @dataclass
 class ExchangeConfig:
     name: str
@@ -15,10 +18,13 @@ class ExchangeConfig:
     api_secret: str
     testnet: bool
     futures_name: str = ""  # Set automatically for split exchanges (e.g. kraken → krakenfutures)
+    quote_currency: str = ""  # Set automatically: USD for kraken, USDT for all others
 
     def __post_init__(self):
         if not self.futures_name:
             self.futures_name = SPLIT_EXCHANGES.get(self.name, self.name)
+        if not self.quote_currency:
+            self.quote_currency = 'USD' if self.name in USD_EXCHANGES else 'USDT'
 
 @dataclass
 class RiskConfig:
