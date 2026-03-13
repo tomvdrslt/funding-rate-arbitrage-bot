@@ -1,5 +1,5 @@
 config/.env
-data/
+/data/
 *.db
 *.log
 __pycache__/

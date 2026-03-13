@@ -30,8 +30,10 @@ class OrderResult:
 
 
 class OrderExecutor:
-    def __init__(self, exchange: ccxt.Exchange, paper_mode: bool):
-        self.exchange = exchange
+    def __init__(self, exchange: ccxt.Exchange, paper_mode: bool,
+                 spot_exchange: ccxt.Exchange = None):
+        self.exchange = exchange          # futures/perp exchange
+        self.spot_exchange = spot_exchange or exchange  # spot exchange (same unless split e.g. Kraken)
         self.paper_mode = paper_mode
 
     # --- Paper mode helpers ---
@@ -111,19 +113,31 @@ class OrderExecutor:
     def buy_spot(self, symbol: str, qty: float, price: float) -> OrderResult:
         if self.paper_mode:
             return self._paper_order(symbol, "buy", qty, price)
-        return self._live_order(symbol, "buy", qty, price, "buy")
+        # Route to spot exchange
+        orig = self.exchange
+        self.exchange = self.spot_exchange
+        result = self._live_order(symbol, "buy", qty, price, "buy")
+        self.exchange = orig
+        return result
 
     def sell_spot(self, symbol: str, qty: float, price: float) -> OrderResult:
         if self.paper_mode:
             return self._paper_order(symbol, "sell", qty, price)
-        return self._live_order(symbol, "sell", qty, price, "sell")
+        # Route to spot exchange
+        orig = self.exchange
+        self.exchange = self.spot_exchange
+        result = self._live_order(symbol, "sell", qty, price, "sell")
+        self.exchange = orig
+        return result
 
     def short_perp(self, symbol: str, qty: float, price: float) -> OrderResult:
         if self.paper_mode:
             return self._paper_order(symbol, "short", qty, price)
+        # Routes to futures exchange (self.exchange)
         return self._live_order(symbol, "short", qty, price, "sell")
 
     def close_perp_short(self, symbol: str, qty: float, price: float) -> OrderResult:
         if self.paper_mode:
             return self._paper_order(symbol, "close_short", qty, price)
+        # Routes to futures exchange (self.exchange)
         return self._live_order(symbol, "close_short", qty, price, "buy", reduce_only=True)

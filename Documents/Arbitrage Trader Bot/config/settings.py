@@ -3,12 +3,22 @@ from typing import List
 import os
 from dotenv import load_dotenv
 
+# Exchanges that use a separate CCXT instance for futures
+SPLIT_EXCHANGES = {
+    'kraken': 'krakenfutures',
+}
+
 @dataclass
 class ExchangeConfig:
     name: str
     api_key: str
     api_secret: str
     testnet: bool
+    futures_name: str = ""  # Set automatically for split exchanges (e.g. kraken → krakenfutures)
+
+    def __post_init__(self):
+        if not self.futures_name:
+            self.futures_name = SPLIT_EXCHANGES.get(self.name, self.name)
 
 @dataclass
 class RiskConfig:
